@@ -298,42 +298,43 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
   loadApartments(3);
 })();
 (() => {
-    const SUPABASE_URL = "https://vglbaobubaujvbqwdyvb.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_MjKF2P-22ePzCMlppBdvpQ_3K8NKvzQ";
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const form = document.querySelector(".contact-form");
-    const button = document.querySelector(".contact-btn");
+  const form = document.getElementById("contactForm");
+  if (!form) return;
 
-    if (!form || !button) return;
+  const firstNameInput = document.getElementById("firstName");
+  const lastNameInput = document.getElementById("lastName");
+  const phoneInput = document.getElementById("phone");
 
-    button.addEventListener("click", async () => {
-      const firstName = form.querySelector('input[name="first_name"]').value.trim();
-      const lastName = form.querySelector('input[name="last_name"]').value.trim();
-      const phone = form.querySelector('input[name="phone"]').value.trim();
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-      if (!firstName || !phone) {
-        alert("Пожалуйста заполните имя и телефон");
-        return;
-      }
+    const firstName = firstNameInput.value.trim();
+    const lastName = lastNameInput.value.trim();
+    const phone = phoneInput.value.trim();
 
-      const { error } = await supabase
-        .from("site_clients_form")
-        .insert([
-          {
-            form_first_name: firstName,
-            form_last_name: lastName,
-            form_phone: phone
-          }
-        ]);
+    if (!firstName || !phone) {
+      alert("Пожалуйста заполните имя и телефон");
+      return;
+    }
 
-      if (error) {
-        console.error(error);
-        alert("Ошибка отправки. Попробуйте позже.");
-        return;
-      }
+    const { error } = await supabase
+      .from("site_clients_form")
+      .insert([
+        {
+          form_first_name: firstName,
+          form_last_name: lastName,
+          form_phone: phone
+        }
+      ]);
 
-      alert("Спасибо! Мы скоро с вами свяжемся.");
+    if (error) {
+      alert("Ошибка отправки");
+      console.error(error);
+      return;
+    }
 
-      form.reset();
-    });
-  })();
+    alert("Спасибо! Мы скоро вам перезвоним.");
+
+    form.reset();
+  });
+})();
