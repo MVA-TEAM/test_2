@@ -1,5 +1,14 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
+/* ---------------- SUPABASE ---------------- */
+
+const SUPABASE_URL = "https://vglbaobubaujvbqwdyvb.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_MjKF2P-22ePzCMlppBdvpQ_3K8NKvzQ";
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ---------------- HERO CARDS DRAG ---------------- */
+
 (() => {
   const viewport = document.querySelector(".hero__cards");
   if (!viewport) return;
@@ -41,6 +50,8 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
   document.addEventListener("mouseup", endDrag);
 })();
 
+/* ---------------- PROMO SLIDER ---------------- */
+
 (() => {
   const track = document.getElementById("promoTrack");
   const dotsWrap = document.getElementById("promoDots");
@@ -71,6 +82,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
   const goTo = (nextIndex, dir) => {
     if (isAnimating || nextIndex === current) return;
     if (nextIndex < 0 || nextIndex >= slidesCount) return;
+
     isAnimating = true;
 
     const prevIndex = current;
@@ -123,15 +135,6 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
     nextBtn.disabled = current === slidesCount - 1;
   };
 
-  const press = (btn, pressed) => btn.classList.toggle("is-pressed", pressed);
-  [prevBtn, nextBtn].forEach((btn) => {
-    btn.addEventListener("mousedown", () => press(btn, true));
-    btn.addEventListener("mouseup", () => press(btn, false));
-    btn.addEventListener("mouseleave", () => press(btn, false));
-    btn.addEventListener("touchstart", () => press(btn, true), { passive: true });
-    btn.addEventListener("touchend", () => press(btn, false));
-  });
-
   prepSlides();
   updateDisabled();
 
@@ -140,10 +143,9 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
   });
 })();
 
+/* ---------------- APARTMENTS LOADING ---------------- */
+
 (() => {
-  const SUPABASE_URL = "https://vglbaobubaujvbqwdyvb.supabase.co";
-  const SUPABASE_ANON_KEY = "sb_publishable_MjKF2P-22ePzCMlppBdvpQ_3K8NKvzQ";
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const grid = document.getElementById("apartmentsGrid");
   const loadMoreBtn = document.getElementById("loadMoreBtn");
   const loadMoreWrap = loadMoreBtn ? loadMoreBtn.parentElement : null;
@@ -154,9 +156,9 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
   let isLoading = false;
 
   const getPageSize = () => {
-    if (window.innerWidth >= 992) return 6; // 3 колонки * 2 ряда
-    if (window.innerWidth >= 768) return 4; // 2 колонки * 2 ряда
-    return 2; // 1 колонка * 2 ряда
+    if (window.innerWidth >= 992) return 6;
+    if (window.innerWidth >= 768) return 4;
+    return 2;
   };
 
   const formatPrice = (value) => {
@@ -168,7 +170,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
   const formatArea = (value) => {
     const num = Number(value);
     if (!Number.isFinite(num)) return "";
-    return `${num.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} м²`;
+    return `${num.toLocaleString("ru-RU")} м²`;
   };
 
   const safeText = (value, fallback = "") => {
@@ -215,19 +217,11 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
     return col;
   };
 
-  const showError = (message) => {
-    grid.innerHTML = `
-      <div class="col-12">
-        <p>Ошибка загрузки: ${message}</p>
-      </div>
-    `;
-    if (loadMoreBtn) loadMoreBtn.disabled = true;
-  };
-
   const loadApartments = async (pageSize) => {
     if (isLoading) return;
+
     isLoading = true;
-    if (loadMoreBtn) loadMoreBtn.disabled = true;
+    loadMoreBtn.disabled = true;
 
     const from = offset;
     const to = offset + pageSize - 1;
@@ -239,64 +233,24 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
       .range(from, to);
 
     if (error) {
-      showError(error.message || "Неизвестная ошибка");
-      isLoading = false;
-      return;
-    }
-
-    if (!data || data.length === 0) {
-      if (offset === 0) {
-        grid.innerHTML = `
-          <div class="col-12">
-            <p>Нет доступных квартир.</p>
-          </div>
-        `;
-      }
-      if (loadMoreBtn) loadMoreBtn.disabled = true;
-      isLoading = false;
+      console.error(error);
       return;
     }
 
     data.forEach((apt) => grid.appendChild(renderApartment(apt)));
+
     offset += data.length;
-
-    if (data.length < pageSize && loadMoreBtn) {
-      loadMoreBtn.disabled = true;
-    }
-
-    if (loadMoreWrap) {
-      loadMoreWrap.classList.add("col-12");
-      loadMoreWrap.classList.add("d-flex");
-      loadMoreWrap.classList.add("justify-content-center");
-      grid.appendChild(loadMoreWrap);
-    }
-
-    if (loadMoreBtn) loadMoreBtn.disabled = false;
+    loadMoreBtn.disabled = false;
     isLoading = false;
   };
 
-  if (loadMoreBtn) {
-    loadMoreBtn.addEventListener("click", () => loadApartments(getPageSize()));
-    loadMoreBtn.addEventListener("mousedown", () => loadMoreBtn.classList.add("is-pressed"));
-    loadMoreBtn.addEventListener("mouseup", () => loadMoreBtn.classList.remove("is-pressed"));
-    loadMoreBtn.addEventListener("mouseleave", () => loadMoreBtn.classList.remove("is-pressed"));
-    loadMoreBtn.addEventListener(
-      "touchstart",
-      () => loadMoreBtn.classList.add("is-pressed"),
-      { passive: true }
-    );
-    loadMoreBtn.addEventListener("touchend", () => loadMoreBtn.classList.remove("is-pressed"));
-  }
-
-  if (loadMoreWrap) {
-    loadMoreWrap.classList.add("col-12");
-    loadMoreWrap.classList.add("d-flex");
-    loadMoreWrap.classList.add("justify-content-center");
-    grid.appendChild(loadMoreWrap);
-  }
+  loadMoreBtn.addEventListener("click", () => loadApartments(getPageSize()));
 
   loadApartments(3);
 })();
+
+/* ---------------- CONTACT FORM ---------------- */
+
 (() => {
   const form = document.getElementById("contactForm");
   if (!form) return;
@@ -328,8 +282,8 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
       ]);
 
     if (error) {
-      alert("Ошибка отправки");
       console.error(error);
+      alert("Ошибка отправки");
       return;
     }
 
