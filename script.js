@@ -170,7 +170,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const formatArea = (value) => {
     const num = Number(value);
     if (!Number.isFinite(num)) return "";
-    return `${num.toLocaleString("ru-RU")} м²`;
+    return `${num.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} м²`;
   };
 
   const safeText = (value, fallback = "") => {
@@ -217,11 +217,19 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     return col;
   };
 
+  const showError = (message) => {
+    grid.innerHTML = `
+      <div class="col-12">
+        <p>Ошибка загрузки: ${message}</p>
+      </div>
+    `;
+    if (loadMoreBtn) loadMoreBtn.disabled = true;
+  };
+
   const loadApartments = async (pageSize) => {
     if (isLoading) return;
-
     isLoading = true;
-    loadMoreBtn.disabled = true;
+    if (loadMoreBtn) loadMoreBtn.disabled = true;
 
     const from = offset;
     const to = offset + pageSize - 1;
@@ -233,18 +241,45 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       .range(from, to);
 
     if (error) {
-      console.error(error);
+      showError(error.message || "Неизвестная ошибка");
+      isLoading = false;
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      if (offset === 0) {
+        grid.innerHTML = `
+          <div class="col-12">
+            <p>Нет доступных квартир.</p>
+          </div>
+        `;
+      }
+      if (loadMoreBtn) loadMoreBtn.disabled = true;
+      isLoading = false;
       return;
     }
 
     data.forEach((apt) => grid.appendChild(renderApartment(apt)));
-
     offset += data.length;
-    loadMoreBtn.disabled = false;
+
+    if (data.length < pageSize && loadMoreBtn) {
+      loadMoreBtn.disabled = true;
+    }
+
+    if (loadMoreWrap) {
+      loadMoreWrap.classList.add("col-12");
+      loadMoreWrap.classList.add("d-flex");
+      loadMoreWrap.classList.add("justify-content-center");
+      grid.appendChild(loadMoreWrap);
+    }
+
+    if (loadMoreBtn) loadMoreBtn.disabled = false;
     isLoading = false;
   };
 
-  loadMoreBtn.addEventListener("click", () => loadApartments(getPageSize()));
+  if (loadMoreBtn) {
+    loadMoreBtn.addEventListener("click", () => loadApartments(getPageSize()));
+  }
 
   loadApartments(3);
 })();
@@ -282,8 +317,8 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       ]);
 
     if (error) {
-      console.error(error);
       alert("Ошибка отправки");
+      console.error(error);
       return;
     }
 
